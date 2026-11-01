@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manic Karts for Dreamcast · Build My CDI</title>
+<meta name="description" content="Build the Dreamcast disc image of Manic Karts from your own PC CD-ROM, in your browser.">
+<style>
+:root {
+  --bg: #f4f2ee; --card: #ffffff; --ink: #1c1b19; --muted: #6b675f; --line: #ddd8cf;
+  --accent: #e8590c; --accent-ink: #ffffff; --ok: #2b8a3e; --bad: #c92a2a; --bar: #efe9df;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161514; --card: #201f1d; --ink: #eeeae3; --muted: #a39e94; --line: #34312d;
+    --accent: #ff7a2e; --accent-ink: #1c1b19; --ok: #69db7c; --bad: #ff8787; --bar: #2c2a27;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+a { color: var(--accent); }
+.crumb { font-size: 14px; color: var(--muted); text-decoration: none; }
+h1 { font-size: 32px; line-height: 1.15; margin: 8px 0 8px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); margin: 0 0 24px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 16px 0; }
+h2 { font-size: 18px; margin: 0 0 8px; }
+ol, ul { padding-left: 22px; margin: 8px 0; }
+li { margin: 4px 0; }
+.drop { display: block; border: 2px dashed var(--line); border-radius: 10px; padding: 28px 16px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--accent); background: var(--bar); }
+.drop strong { display: block; font-size: 17px; }
+.drop span { color: var(--muted); font-size: 14px; }
+.files { margin: 12px 0 0; font-size: 14px; color: var(--muted); word-break: break-all; }
+button, .button { appearance: none; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600; padding: 12px 20px; cursor: pointer; text-decoration: none; display: inline-block; }
+button:disabled { opacity: .45; cursor: default; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.stepname { font-weight: 600; }
+.bar { height: 10px; background: var(--bar); border-radius: 5px; overflow: hidden; margin: 10px 0 6px; }
+.bar div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.small { font-size: 14px; color: var(--muted); }
+details { margin-top: 10px; }
+pre { max-height: 220px; overflow: auto; background: var(--bar); border-radius: 8px; padding: 10px; font-size: 12px; white-space: pre-wrap; margin: 8px 0 0; }
+.err { color: var(--bad); font-weight: 600; }
+.okmsg { color: var(--ok); font-weight: 600; }
+[hidden] { display: none !important; }
+footer { margin-top: 32px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <a class="crumb" href="../">← Build My CDI</a>
+  <h1>Manic Karts for Dreamcast</h1>
+  <p class="lede">A native Sega Dreamcast port of the 1995 PC kart racer. Choose your own copy of the PC CD-ROM and this page builds the Dreamcast disc image (.cdi) for you, right here in your browser. Nothing to install, and nothing is uploaded: your files never leave your computer.</p>
+
+  <div class="card">
+    <h2>What you need</h2>
+    <ul>
+      <li>Your own Manic Karts PC CD-ROM, as a <strong>BIN/CUE</strong> image (the .cue file and its .bin file, or one .bin per track).</li>
+      <li>A desktop browser (Chrome, Edge, Firefox or Safari) and about 2 GB of free memory. It takes a few minutes.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="pick">
+    <h2>1. Choose your CD image</h2>
+    <label class="drop" id="drop">
+      <strong>Drop the .cue and .bin here</strong>
+      <span>or click to choose them (select both)</span>
+      <input type="file" id="file" multiple accept=".cue,.bin,.img" hidden>
+    </label>
+    <div class="files" id="files"></div>
+    <div class="row"><button id="go" disabled>Build the disc image</button></div>
+  </div>
+
+  <div class="card" id="work" hidden>
+    <h2>2. Building</h2>
+    <div class="stepname" id="step">Starting</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div class="small" id="elapsed">Keep this tab open until it's finished.</div>
+    <div class="err" id="error" hidden></div>
+    <details><summary class="small">Details</summary><pre id="log"></pre></details>
+  </div>
+
+  <div class="card" id="done" hidden>
+    <h2>3. Your disc image</h2>
+    <p class="okmsg">Finished. Your disc image is ready.</p>
+    <div class="row"><a class="button" id="save" download="manic-karts.cdi">Download manic-karts.cdi</a><span class="small" id="size"></span></div>
+    <ul>
+      <li><strong>Emulator:</strong> open manic-karts.cdi in <a href="https://github.com/flyinghead/flycast">Flycast</a>.</li>
+      <li><strong>Dreamcast:</strong> copy it to your GDEMU's SD card, or burn it to a CD-R.</li>
+    </ul>
+    <p class="small">Please don't share the disc image: it holds the game's own pictures, sounds and music from your CD.</p>
+  </div>
+
+  <footer>
+    Manic Karts is © Manic Media Productions / Virgin Interactive. This is a non-commercial fan project, not affiliated with or endorsed by them or by Sega.
+    Made with <a href="https://github.com/KallistiOS/KallistiOS">KallistiOS</a>, <a href="https://github.com/gyrovorbis/sh4zam">SH4ZAM</a> and <a href="https://pyodide.org">Pyodide</a>; the disc layout follows <a href="https://gitlab.com/simulant/mkdcdisc">mkdcdisc</a>.
+  </footer>
+</main>
+<script>
+"use strict";
+var chosen = [], t0 = 0, timer = null, busy = false;
+var $ = function (id) { return document.getElementById(id); };
+function setFiles(list) {
+  chosen = Array.prototype.slice.call(list).filter(function (f) { return /\.(cue|bin|img)$/i.test(f.name); });
+  $("files").textContent = chosen.length ? chosen.map(function (f) { return f.name + " (" + (f.size / 1048576).toFixed(1) + " MB)"; }).join(", ") : "";
+  $("go").disabled = !chosen.some(function (f) { return /\.(bin|img)$/i.test(f.name); });
+}
+$("file").addEventListener("change", function () { setFiles(this.files); });
+var drop = $("drop");
+["dragenter", "dragover"].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add("over"); }); });
+["dragleave", "drop"].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove("over"); }); });
+drop.addEventListener("drop", function (ev) { setFiles(ev.dataTransfer.files); });
+window.addEventListener("beforeunload", function (ev) { if (busy) { ev.preventDefault(); ev.returnValue = ""; } });
+
+function log(s) { var l = $("log"); l.textContent += s + "\n"; l.scrollTop = l.scrollHeight; }
+$("go").addEventListener("click", function () {
+  $("go").disabled = true; $("work").hidden = false; $("done").hidden = true; $("error").hidden = true; $("log").textContent = "";
+  busy = true; t0 = Date.now();
+  timer = setInterval(function () {
+    var s = Math.round((Date.now() - t0) / 1000);
+    $("elapsed").textContent = Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2) + " · Keep this tab open until it's finished.";
+  }, 1000);
+  var w = new Worker("worker.js");
+  w.onmessage = function (ev) {
+    var m = ev.data;
+    if (m.log) log(m.log);
+    if (m.step) { $("step").textContent = m.step; $("fill").style.width = Math.round(Math.min(1, m.frac || 0) * 100) + "%"; }
+    if (m.done) {
+      busy = false; clearInterval(timer);
+      $("step").textContent = "Done"; $("fill").style.width = "100%";
+      $("save").href = URL.createObjectURL(m.done);
+      $("size").textContent = (m.size / 1048576).toFixed(0) + " MB";
+      $("done").hidden = false; $("go").disabled = false;
+      w.terminate();
+    }
+    if (m.error) {
+      busy = false; clearInterval(timer);
+      $("error").textContent = m.error; $("error").hidden = false; $("go").disabled = false;
+      log("Error: " + m.error); w.terminate();
+    }
+  };
+  w.onerror = function (e) { if (busy) { busy = false; clearInterval(timer); $("error").textContent = "Something went wrong: " + (e.message || "the browser stopped the build"); $("error").hidden = false; $("go").disabled = false; } };
+  w.postMessage({ files: chosen, pyodide: window.MK_PYODIDE });
+});
+</script>
+</body>
+</html>
