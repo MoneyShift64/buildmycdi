@@ -4,7 +4,7 @@
  *   message in:  {files: [File...]}          (the .cue and its .bin file(s))
  *   messages out: {log}, {step, frac}, {done: Blob, size}, {error} */
 "use strict";
-importScripts("mk.js");
+importScripts("../common/disc.js");
 
 var PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.28.1/full/";
 var KEXE_SHA1 = "134bc3e474f2c5b5cb065d7773a442b7cbfdffbb";
@@ -100,7 +100,9 @@ async function build(list) {
     step("Starting Python", 0);
     importScripts(PYODIDE + "pyodide.js");
     var py = await loadPyodide({ indexURL: PYODIDE });
-    py.setStdout({ batched: function (s) { log(s); } });
+    py.setStdout({ batched: function (s) {   /* (build_vq.py reports each kart's compression error: just say it's done) */
+        log(s.replace(/^\/mk\//, "").replace(/\s*\(error [\d.]+\)/, "  compressed"));
+    } });
     py.setStderr({ batched: function (s) { log(s); } });
     var FS = py.FS;
     ["/mk", "/mk/tools", "/mk/mods", "/mk/extracted", "/mk/extracted/KART", "/mk/data"].forEach(function (d) { FS.mkdir(d); });
@@ -142,7 +144,7 @@ async function build(list) {
     /* 4. the disc image: the prebuilt game program and the data, as mkdcdisc lays it out */
     step("Making the disc image", 0);
     var ipbin = fetchBytes("game/IP.BIN"), first = fetchBytes("game/1ST_READ.BIN");
-    var pieces = MK.makeDisc({ ipbin: ipbin, firstRead: first, files: out, isoSectors: 316570,
+    var pieces = MK.makeDisc({ ipbin: ipbin, firstRead: first, files: out, isoSectors: 316570, dir: "DATA",
         name: "manic-karts.cdi", progress: function (f) { step("Making the disc image", f); } });
     out = null;
     var blob = new Blob(pieces, { type: "application/octet-stream" });

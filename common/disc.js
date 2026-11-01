@@ -1,4 +1,4 @@
-/* mk.js - the parts of the Manic Karts build that run as JavaScript (in the page's worker,
+/* disc.js - shared by the game pages; first written for Manic Karts: the parts of its build that run as JavaScript (in the page's worker,
  * or under Node for testing). Ports of the project's own tools:
  *   cue / CD image reading       tools/extract_cd.py and tools/mkmusic.c
  *   unkart                       tools/unkart.c (KART.DAT, LZHUF)
@@ -385,44 +385,53 @@ function packDir(records) {
  *        progress(fraction)}
  * -> an array of Uint8Array pieces, the .cdi in order */
 function makeDisc(opts) {
-    var START = 11702, date = new Date(), vol = opts.volume || "MANIC_KARTS";
+    var START = 11702, date = new Date(), vol = opts.volume || "MANIC_KARTS", sub = opts.dir;
     var files = opts.files.map(function (f) { return [f[0].toUpperCase() + ";1", f[1]]; });
     files.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
     function nsec(n) { return Math.ceil(n / 2048); }
-    /* the directory first, to know its length */
-    var dataRecs = function (dirLba, dirLen, rootLba) {
-        var recs = [dirRecord("\0", dirLba, dirLen, true, date), dirRecord("\x01", rootLba, 2048, true, date)];
+    var fr = opts.firstRead, frSecs = nsec(fr.length);
+    var used = 0; files.forEach(function (f) { f.lba = 0; used += nsec(f[1].length); });
+    var rootLba = START + 20, dataLba = START + 21, frLba = 0;
+    /* the files' directory: data/ (opts.dir) under the root, or the root itself */
+    function fileRecs(selfLba, selfLen, parentLba, parentLen) {
+        var recs = [dirRecord("\0", selfLba, selfLen, true, date), dirRecord("\x01", parentLba, parentLen, true, date)];
+        if (!sub) recs.push(dirRecord("1ST_READ.BIN;1", START + frLba, fr.length, false, date));
         files.forEach(function (f) { recs.push(dirRecord(f[0], f.lba, f[1].length, false, date)); });
         return recs;
-    };
-    files.forEach(function (f) { f.lba = 0; });
-    var dirSecs = packDir(dataRecs(0, 0, 0)).length;
-    var used = 0; files.forEach(function (f) { used += nsec(f[1].length); });
-    var fr = opts.firstRead, frSecs = nsec(fr.length);
-    var head = 21 + dirSecs, total = Math.max(opts.isoSectors || 0, head + frSecs + used);
+    }
+    var dirSecs = packDir(fileRecs(0, 0, 0, 0)).length;
+    var head = (sub ? 21 : 20) + dirSecs, total = Math.max(opts.isoSectors || 0, head + frSecs + used);
     /* the files at the end of the track (mkdcdisc pads the disc so they are on its outer
      * edge, where a real drive reads fastest) */
-    var at = total - used - frSecs, frLba = at;
+    var at = total - used - frSecs;
+    frLba = at;
     at += frSecs;
     files.forEach(function (f) { f.lba = START + at; at += nsec(f[1].length); });
-    var rootLba = START + 20, dataLba = START + 21;
-    var dataDir = packDir(dataRecs(dataLba, dirSecs * 2048, rootLba));
-    var rootDir = packDir([dirRecord("\0", rootLba, 2048, true, date), dirRecord("\x01", rootLba, 2048, true, date),
+    var rootDir, dataDir = [], rootLen;
+    if (sub) {
+        rootLen = 2048;
+        dataDir = packDir(fileRecs(dataLba, dirSecs * 2048, rootLba, rootLen));
+        rootDir = packDir([dirRecord("\0", rootLba, rootLen, true, date), dirRecord("\x01", rootLba, rootLen, true, date),
                            dirRecord("1ST_READ.BIN;1", START + frLba, fr.length, false, date),
-                           dirRecord("DATA", dataLba, dirSecs * 2048, true, date)]);
+                           dirRecord(sub, dataLba, dirSecs * 2048, true, date)]);
+    } else {
+        rootLen = dirSecs * 2048;
+        rootDir = packDir(fileRecs(rootLba, rootLen, rootLba, rootLen));
+    }
     /* path tables */
+    var ptSize = sub ? 10 + 8 + sub.length + (sub.length % 2) : 10;
     function pathTable(be) {
         var t = new Uint8Array(2048), dv = new DataView(t.buffer);
         t[0] = 1; dv.setUint32(2, rootLba, !be); dv.setUint16(6, 1, !be); t[8] = 0;
-        t[10] = 4; dv.setUint32(12, dataLba, !be); dv.setUint16(16, 1, !be); putStr(t, 18, "DATA", 4);
+        if (sub) { t[10] = sub.length; dv.setUint32(12, dataLba, !be); dv.setUint16(16, 1, !be); putStr(t, 18, sub, sub.length); }
         return t;
     }
     var pvd = new Uint8Array(2048), dv = new DataView(pvd.buffer);
     pvd[0] = 1; putStr(pvd, 1, "CD001", 5); pvd[6] = 1;
     putStr(pvd, 8, "", 32); putStr(pvd, 40, vol, 32);
     both32(dv, 80, total); both16(dv, 120, 1); both16(dv, 124, 1); both16(dv, 128, 2048);
-    both32(dv, 132, 22); dv.setUint32(140, START + 18, true); dv.setUint32(148, START + 19, false);
-    pvd.set(dirRecord("\0", rootLba, 2048, true, date), 156);
+    both32(dv, 132, ptSize); dv.setUint32(140, START + 18, true); dv.setUint32(148, START + 19, false);
+    pvd.set(dirRecord("\0", rootLba, rootLen, true, date), 156);
     putStr(pvd, 190, "", 128); putStr(pvd, 318, "", 128); putStr(pvd, 446, "BUILDMYCDI.CLOUD", 128); putStr(pvd, 574, "", 128);
     putStr(pvd, 702, "", 37); putStr(pvd, 739, "", 37); putStr(pvd, 776, "", 37);
     isoDate17(pvd, 813, date); isoDate17(pvd, 830, date);
@@ -499,7 +508,30 @@ function cdiHeader(isoSectors, filename) {
     return new Uint8Array(b);
 }
 
-return { parseCue: parseCue, isoRoot: isoRoot, isoFile: isoFile, unkart: unkart, MusicEncoder: MusicEncoder,
+
+/* the Dreamcast boot ROM's 1ST_READ.BIN scrambling (Marcus Comstedt's scramble.c, as mkdcdisc) */
+function scramble(src) {
+    var out = new Uint8Array(src.length), seed = src.length & 0xffff, pos = 0, size = src.length;
+    function rand() { seed = (seed * 2109 + 9273) & 0x7fff; return (seed + 0xc000) & 0xffff; }
+    var idx = new Int32Array(65536);
+    for (var chunk = 2 * 1024 * 1024; chunk >= 32; chunk >>= 1) {
+        while (size >= chunk) {
+            var n = chunk / 32, at = 0;
+            for (var i = 0; i < n; i++) idx[i] = i;
+            for (i = n - 1; i >= 0; i--) {
+                var x = Math.floor(rand() * i / 65536), t = idx[i];
+                idx[i] = idx[x]; idx[x] = t;
+                out.set(src.subarray(pos + 32 * idx[i], pos + 32 * idx[i] + 32), pos + at * 32);
+                at++;
+            }
+            pos += chunk; size -= chunk;
+        }
+    }
+    if (size) out.set(src.subarray(pos), pos);
+    return out;
+}
+
+return { scramble: scramble, parseCue: parseCue, isoRoot: isoRoot, isoFile: isoFile, unkart: unkart, MusicEncoder: MusicEncoder,
          vqTexture: vqTexture, makeDisc: makeDisc, cdiHeader: cdiHeader, form1Sector: form1Sector };
 })();
 

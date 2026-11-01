@@ -1,0 +1,21 @@
+{
+ "segments": {
+  "main": [
+   1039584,
+   212980
+  ],
+  "ovl1": [
+   1405104,
+   37464
+  ],
+  "ovl2": [
+   1252576,
+   152520
+  ],
+  "ovl3": [
+   1442576,
+   66720
+  ]
+ },
+ "note": "1ST_READ.BIN before scrambling (the release build's cruisn-game.elf, as mkdcdisc lays it out), with the four data segments made from the ROM left as zeros: offset, length"
+}
