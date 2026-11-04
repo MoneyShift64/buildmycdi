@@ -10,6 +10,7 @@ No game data is included here.
 |---|---|
 | `manickarts/` | Manic Karts (needs the PC CD-ROM as a BIN/CUE image) |
 | `cruisnusa/` | Cruis'n USA (needs the N64 ROM, USA Rev 1) |
+| `hotelmario/` | Hotel Mario (needs a raw Philips CD-i BIN image with 2352 bytes per sector) |
 
 Each game's folder holds its page, its worker (the build steps), the prebuilt Dreamcast program (`game/`)
 and the project's own conversion tools (`tools/`, run in the browser by [Pyodide](https://pyodide.org)).
@@ -18,3 +19,7 @@ and the project's own conversion tools (`tools/`, run in the browser by [Pyodide
 
 Cruis'n USA's prebuilt program has the four data segments its build makes from the ROM left empty
 (`game/program.json` says where); the page makes them from the visitor's ROM and puts them in.
+
+The [Hotel Mario builder](https://buildmycdi.cloud/hotelmario/) extracts the original disc files and
+converts the stages, graphics, audio and cutscenes in the browser. It uses the Musashi 68000 emulator
+compiled to WebAssembly to extract sprites. The finished download is `hotel-mario-dreamcst.cdi`.
