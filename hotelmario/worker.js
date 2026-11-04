@@ -46,6 +46,7 @@ async function build(files, pyodideUrl) {
     let output = [];
     const runner = await createSpriteRunner({
         noInitialRun: true,
+        wasmBinary: await fetchBytes("tools/sprite_runner.wasm"),
         print: line => output.push(line),
         printErr: log
     });
