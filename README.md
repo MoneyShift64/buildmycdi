@@ -11,6 +11,7 @@ No game data is included here.
 | `manickarts/` | Manic Karts (needs the PC CD-ROM as a BIN/CUE image) |
 | `cruisnusa/` | Cruis'n USA (needs the N64 ROM, USA Rev 1) |
 | `hotelmario/` | Hotel Mario (needs a raw Philips CD-i BIN image with 2352 bytes per sector) |
+| `vividdolls/` | Vivid Dolls (needs the arcade ROM dump nus-zsaj-0.u3; the game reads it from the disc at start-up) |
 
 Each game's folder holds its page, its worker (the build steps), the prebuilt Dreamcast program (`game/`)
 and the project's own conversion tools (`tools/`, run in the browser by [Pyodide](https://pyodide.org)).
