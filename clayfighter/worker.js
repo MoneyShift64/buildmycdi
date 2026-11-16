@@ -34,6 +34,7 @@ async function sha1(b) {
 onmessage = function (ev) {
     if (ev.data.pyodide) PYODIDE = ev.data.pyodide;
     build(ev.data.file).catch(function (e) {
+        if (e && e.stack) log(String(e.stack));            /* (where it went wrong, in Details) */
         postMessage({ error: e && e.message ? e.message : String(e) });
     });
 };
@@ -106,8 +107,10 @@ async function build(file) {
 
     /* 2. the game's data from the ROM: the port's own Python tools */
     step("Starting Python", 0);
+    log("Loading Python from " + PYODIDE);
     if (typeof loadPyodide === "undefined") importScripts(PYODIDE + "pyodide.js");
     var py = await loadPyodide({ indexURL: PYODIDE });
+    log("Python started");
     py.setStdout({ batched: function (s) { log(s); } });
     py.setStderr({ batched: function (s) { log(s); } });
     var FS = py.FS;
@@ -117,6 +120,7 @@ async function build(file) {
     DATA.forEach(function (f) { FS.writeFile("/cf/tools/data/" + f, fetchBytes("tools/data/" + f)); });
     FS.writeFile("/cf/build/defined.txt", fetchBytes("game/defined.txt"));
     py.globals.set("cf_unpack", await unpacker(rom));
+    log("Tools loaded");
     rom = null;
     py.runPython([
         "import sys, os, runpy",
