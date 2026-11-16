@@ -1,0 +1,25 @@
+# ArenaDef (src/char/cf3char_structs.h): offset size of each item, 96 bytes
+0 4
+4 4
+8 4
+C 4
+10 4
+14 4
+18 4
+1C 4
+20 4
+24 4
+28 4
+2C 4
+30 4
+34 4
+38 4
+3C 4
+40 4
+44 4
+48 4
+4C 4
+50 4
+54 4
+58 4
+5C 4

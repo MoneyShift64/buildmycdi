@@ -1,0 +1,7 @@
+{
+ "data": [
+  601728,
+  180976
+ ],
+ "note": "1ST_READ.BIN before scrambling (the release build's build/cfsc.elf, objcopy -R .stack -O binary), with the game's data (build/data.S, made from the ROM) left as zeros: offset, length. defined.txt is that build's defined.txt, for tools/port_data.py."
+}
