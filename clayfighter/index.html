@@ -125,7 +125,7 @@ $("go").addEventListener("click", function () {
     var s = Math.round((Date.now() - t0) / 1000);
     $("elapsed").textContent = Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2) + " · Keep this tab open until it's finished.";
   }, 1000);
-  var w = new Worker("worker.js");
+  var w = new Worker("worker.js?v=2");
   w.onmessage = function (ev) {
     var m = ev.data;
     if (m.log) log(m.log);
